@@ -4,7 +4,8 @@ import bcrypt from 'bcrypt';
 import authMiddleware from '../middlewares/auth.middleware.js';
 import jwt from 'jsonwebtoken';
 import { Prisma } from '@prisma/client';
-
+import dotenv from 'dotenv';
+dotenv.config();
 
 const router = express.Router();
 
@@ -75,5 +76,28 @@ router.post('/sign-up',async(req, res, next)=>{
         next(error);
     }
 });
+
+//** 사용자 로그인 API **//
+router.get('/login' , async (req,res, next)=>{
+    const {id, password} = req.body;
+    //유저 id를 기준으로 유저 찾기( id를 유니크 키로 설정했음)
+    const user = await prisma.users.findFirst({
+        where: {id: id},
+    });
+    //해당 Id가 없을 경우 리턴
+    if(!user){
+        return res.status(401).json({messgae:"ID 또는 비밀번호가 틀렸습니다."});
+    }
+    //비밀번호 확인 (메세지는 보안을 위해 둘다 똑같이 설정함)
+    if(!await bcrypt.compare(password,user.password)){
+        return res.status(401).json({message:"ID 또는 비밀번호가 틀렸습니다."})
+    }
+
+    //로그인 성공 시 사용자에게 jwt 발급
+    const token = jwt.sign({userId: user.userId},process.env.SECRET_KEY); 
+    // Bearer로 cookie 설정 (authMiddleware 에서 검증하기 위해 Bearer 추가)
+    res.cookie('autorization', `Bearer ${token}`); 
+    return res.status(201).json({message: "로그인 성공"});
+})
 
 export default router;
