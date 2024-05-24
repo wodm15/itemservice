@@ -14,15 +14,17 @@ datasource db {
 }
 
 model Users {
-  userId Int @id @default(autoincrement()) @map("userId)
+  userId Int @id @default(autoincrement()) @map("userId")
   email String @unique @map("email")
   password String @map("password")
 
   createdAt DateTime @default(now()) @map("createdAt")
   updatedAt DateTime @updatedAt @map("updatedAt")
 
-  UserInfos UserInfos? //1:1 한 유저는 한 유저의 정보
+  UserInfos UserInfos?  //1:1 한 유저는 한 유저의 정보
   Character Character[] //1:N 한 유저는 여러 캐릭터를 가짐
+  Item      Item[]     //1:N 한 유저는 여러 아이템을 가짐(캐릭터에 다시 정의)
+
   @@map("Users")
 }
 
@@ -39,18 +41,37 @@ model UserInfos {
   createdAt DateTime @default(now()) @map("createdAt")
   updatedAt DateTime @updatedAt @map("updatedAt")
 
+
   @@map("UserInfos")
 }
 
 model Character {
   characterId Int @id @default(autoincrement()) @map("characterId")
-  UserId int @map("UserId") //외래키 생성
+  UserId Int @map("UserId") //외래키 생성
   name String @map("name")
   health Int @map("health")
   power Int @map("power")
   money Int @map("money")
 
+  createdAt DateTime @default(now()) @map("createdAt")
+  updatedAt DateTime @updatedAt @map("updatedAt")
+
   user Users @relation(fields: [UserId], references: [userId],onDelete: Cascade)
 
+  Item      Item[]      //1:N 한 캐릭터는 여러 아이템을 가짐
   @@map("Character")
+}
+
+model Item {
+  itemId Int @id @default(autoincrement()) @map("itemId")
+
+  UserId Int @map("UserId")
+  CharacterId Int @map("CharacterId")
+  
+  createdAt DateTime @default(now()) @map("createdAt")
+  updatedAt DateTime @updatedAt @map("updatedAt")
+
+  User Users @relation(fields:[UserId], references: [userId], onDelete: Cascade)
+  Character Character @relation(fields:[CharacterId], references: [characterId], onDelete: Cascade)
+
 }
