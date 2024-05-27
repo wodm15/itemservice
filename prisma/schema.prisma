@@ -24,7 +24,6 @@ model Users {
 
   UserInfos UserInfos?  //1:1 한 유저는 한 유저의 정보
   Character Character[] //1:N 한 유저는 여러 캐릭터를 가짐
-  Item      Item[]     //1:N 한 유저는 여러 아이템을 가짐(캐릭터에 다시 정의)
 
   @@map("Users")
 }
@@ -59,20 +58,18 @@ model Character {
 
   user Users @relation(fields: [UserId], references: [userId],onDelete: Cascade)
 
-  Item      Item[]      //1:N 한 캐릭터는 여러 아이템을 가짐
   @@map("Character")
 }
 
 model Item {
   itemId Int @id @default(autoincrement()) @map("itemId")
+  itemCode Int @unique @map("itemCode")
+  itemName String @map("itemName")
+  itemHealth Int? @map("itemHealth")
+  itemPower Int? @map("itemPower")
 
-  UserId Int @map("UserId")
-  CharacterId Int @map("CharacterId")
-  
+
   createdAt DateTime @default(now()) @map("createdAt")
   updatedAt DateTime @updatedAt @map("updatedAt")
-
-  User Users @relation(fields:[UserId], references: [userId], onDelete: Cascade)
-  Character Character @relation(fields:[CharacterId], references: [characterId], onDelete: Cascade)
 
 }
