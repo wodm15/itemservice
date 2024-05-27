@@ -116,6 +116,14 @@ router.get('/users', authMiddleware, async (req, res, next) => {
                     profileImage: true,
                 },
             },
+            Character: {
+                select: {
+                    name: true,
+                    health: true,
+                    power: true,
+                    money: true,
+                }
+            }
         },
     });
 
