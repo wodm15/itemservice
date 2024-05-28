@@ -113,5 +113,109 @@ router.get('/characters/:character_id', authMiddleware, async(req, res, next) =>
 });
 
 
+//** 캐릭터 아이템 부착 API **//
+router.post('/characters/:character_id/equip', authMiddleware, async (req, res, next) => {
+    try {
+        const { character_id } = req.params;
+        const { itemCode } = req.body;
+        console.log(character_id);  // 콘솔 로그 확인
+
+        // db에서 캐릭터와 아이템 가져오기
+        const character = await prisma.character.findUnique({
+            where: { characterId: +character_id }  // character_id를 정수로 변환
+        });
+        
+        const item = await prisma.item.findUnique({
+            where: { itemCode: +itemCode }  // itemCode를 정수로 변환
+        });
+
+        // 예외처리
+        if (!character || !item) {
+            return res.status(404).json({ message: "캐릭터 또는 아이템을 찾을 수 없습니다." });
+        }
+
+        // 이미 존재하는 아이템 착용 여부 확인
+        const isExistItem = await prisma.characterItem.findFirst({
+            where: {
+                CharacterId: +character.characterId,
+                ItemCode: +item.itemCode
+            }
+        });
+        if (isExistItem) {
+            return res.status(400).json({ message: "이미 착용한 아이템입니다." });
+        }
+
+        // 캐릭터아이템 db에 캐릭터Id와 아이템Id 추가하기
+        await prisma.characterItem.create({
+            data: {
+                CharacterId: character.characterId,
+                ItemCode: item.itemCode,  // itemCode가 아니라 itemId
+            },
+        });
+
+        // 캐릭터 능력치 업데이트
+        const updatedCharacter = await prisma.character.update({
+            where: { characterId: character.characterId },
+            data: {
+                health: character.health + (item.itemHealth || 0),
+                power: character.power + (item.itemPower || 0),
+            }
+        });
+
+        return res.status(200).json({ data: updatedCharacter });
+    } catch (error) {
+        next(error);
+    }
+});
+
+//** 캐릭터 아이템 탈착 API **//
+router.delete('/characters/:character_id/unequip', authMiddleware, async (req, res, next) => {
+    try {
+        const { character_id } = req.params;
+        const { itemCode } = req.body;
+        console.log(character_id);  // 콘솔 로그 확인
+
+        // db에서 캐릭터와 아이템 가져오기
+        const character = await prisma.character.findUnique({
+            where: { characterId: +character_id }  // character_id를 정수로 변환
+        });
+        
+        const item = await prisma.item.findUnique({
+            where: { itemCode: +itemCode }  // itemCode를 정수로 변환
+        });
+
+        // 예외처리: 캐릭터나 아이템이 없는 경우
+        if (!character || !item) {
+            return res.status(404).json({ message: "캐릭터 또는 아이템을 찾을 수 없습니다." });
+        }
+
+        // 캐릭터아이템 db에서 캐릭터Id와 아이템Id에 해당하는 레코드 제거하기
+        const deletedCharacterItem = await prisma.characterItem.deleteMany({
+            where: {
+                CharacterId: +character.characterId,
+                ItemCode: +item.itemCode
+            }
+        });
+
+        // 예외처리: 삭제된 캐릭터 아이템이 없는 경우
+        if (deletedCharacterItem.count === 0) {
+            return res.status(404).json({ message: "해당 캐릭터가 해당 아이템을 착용하고 있지 않습니다." });
+        }
+
+        // 캐릭터 능력치 업데이트
+        const updatedCharacter = await prisma.character.update({
+            where: { characterId: character.characterId },
+            data: {
+                health: character.health - (item.itemHealth || 0),
+                power: character.power - (item.itemPower || 0),
+            }
+        });
+
+        return res.status(200).json({ data: updatedCharacter });
+    } catch (error) {
+        next(error);
+    }
+});
+
 
 export default router;
